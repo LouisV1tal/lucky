@@ -34,4 +34,12 @@ router.patch('/:id/deactivate', async (req, res) => {
   res.json(employee);
 });
 
+router.patch('/:id/activate', async (req, res) => {
+  const employee = await prisma.employee.update({
+    where: { id: Number(req.params.id) },
+    data: { isActive: true },
+  });
+  res.json(employee);
+});
+
 module.exports = router;
