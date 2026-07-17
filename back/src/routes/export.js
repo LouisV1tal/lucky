@@ -7,6 +7,22 @@ const { TECH_STATUS_LABELS } = require('../utils/statusChain');
 const router = express.Router();
 router.use(authRequired, requireRole('admin'));
 
+// Тот же принцип, что и в реестре заказов: числовой ввод ищет номер заказа
+// точным совпадением, а не подстрокой (иначе "2" находил бы старые номера
+// вида "2026-00001").
+function buildSearchWhere(search) {
+  const trimmed = search.trim();
+  const isPureNumber = /^\d+$/.test(trimmed);
+
+  return {
+    OR: [
+      isPureNumber ? { orderNumber: { equals: trimmed } } : { orderNumber: { contains: trimmed } },
+      { client: { fullName: { contains: trimmed, mode: 'insensitive' } } },
+      { client: { primaryPhone: { contains: trimmed } } },
+    ],
+  };
+}
+
 // GET /api/v1/export/orders.xlsx
 router.get('/orders.xlsx', async (req, res) => {
   const { status, dateFrom, dateTo, search, phone, city } = req.query;
@@ -19,13 +35,7 @@ router.get('/orders.xlsx', async (req, res) => {
   }
   if (city) where.address = { city: { contains: city, mode: 'insensitive' } };
   if (phone) where.client = { primaryPhone: { contains: phone } };
-  if (search) {
-    where.OR = [
-      { orderNumber: { contains: search } },
-      { client: { fullName: { contains: search, mode: 'insensitive' } } },
-      { client: { primaryPhone: { contains: search } } },
-    ];
-  }
+  if (search) Object.assign(where, buildSearchWhere(search));
 
   const orders = await prisma.order.findMany({
     where,
