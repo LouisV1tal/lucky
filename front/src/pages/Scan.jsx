@@ -42,17 +42,27 @@ export default function Scan() {
     setError('');
     setCameraError('');
     foundRef.current = false;
+
+    // Видео-элемент теперь всегда присутствует в разметке (просто скрыт
+    // стилями), поэтому videoRef.current уже существует к этому моменту —
+    // раньше камера включалась раньше, чем React успевал отрисовать <video>,
+    // из-за чего поток было некуда подключить.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+
+      if (!videoRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        setCameraError('Не удалось подготовить видео для камеры. Обновите страницу и попробуйте снова.');
+        return;
       }
+
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
       setScanning(true);
-      tick();
+      rafRef.current = requestAnimationFrame(tick);
     } catch (err) {
       setCameraError(
         'Не удалось получить доступ к камере. Проверьте, что браузер имеет разрешение на использование камеры, ' +
@@ -64,6 +74,10 @@ export default function Scan() {
   function stopScanning() {
     setScanning(false);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -105,14 +119,15 @@ export default function Scan() {
         Наведите камеру на бирку заказа — заказ откроется автоматически, как только код будет распознан.
       </p>
 
+      {/* Видео всегда в разметке (нужно, чтобы ref был готов до включения камеры),
+          просто показываем/скрываем контейнер стилями */}
+      <div className="scanner-viewport" style={{ display: scanning ? 'block' : 'none' }}>
+        <video ref={videoRef} playsInline muted />
+        <div className="scanner-frame" />
+      </div>
+
       {scanning ? (
-        <>
-          <div className="scanner-viewport">
-            <video ref={videoRef} playsInline muted />
-            <div className="scanner-frame" />
-          </div>
-          <button className="btn secondary" onClick={stopScanning}>Остановить камеру</button>
-        </>
+        <button className="btn secondary" onClick={stopScanning}>Остановить камеру</button>
       ) : (
         <button className="btn big accent" style={{ maxWidth: 420, margin: '0 auto 20px' }} onClick={startScanning}>
           Начать сканирование
