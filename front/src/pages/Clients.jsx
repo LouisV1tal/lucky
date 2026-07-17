@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../api.js';
 
 export default function Clients() {
@@ -22,9 +22,17 @@ export default function Clients() {
       setClients(data);
       setLoaded(true);
     } catch (err) {
-      setSearchError('Не удалось выполнить поиск');
+      setSearchError('Не удалось загрузить список клиентов');
     }
   }
+
+  // Загружаем список клиентов сразу при открытии страницы (раньше список
+  // был виден только после нажатия "Найти" — теперь видно всех клиентов
+  // с самого начала, а поиск просто сужает список).
+  useEffect(() => {
+    find('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function createClient(e) {
     e.preventDefault();
@@ -52,10 +60,9 @@ export default function Clients() {
       });
 
       setCreateSuccess(`Клиент «${form.fullName}» добавлен`);
-      const phone = form.primaryPhone;
       setForm(emptyForm);
-      setSearch(phone);
-      find(phone);
+      setSearch('');
+      find('');
     } catch (err) {
       setCreateError(err.response?.data?.error || 'Не удалось добавить клиента');
     }
@@ -100,7 +107,7 @@ export default function Clients() {
         <h2>Поиск клиентов</h2>
         <div className="row">
           <div>
-            <label>Поиск по имени или телефону</label>
+            <label>Поиск по имени или телефону (оставьте пустым, чтобы увидеть всех)</label>
             <input className="input" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -112,9 +119,9 @@ export default function Clients() {
 
       <div className="card">
         {!loaded ? (
-          <p className="hint-text">Введите запрос для поиска, или добавьте нового клиента выше.</p>
+          <p className="hint-text">Загрузка списка клиентов…</p>
         ) : clients.length === 0 ? (
-          <p className="hint-text">Ничего не найдено.</p>
+          <p className="hint-text">Клиентов пока нет — добавьте первого выше.</p>
         ) : (
           <table>
             <thead><tr><th>Имя</th><th>Телефон</th><th>Заказов</th><th>Последнее обращение</th></tr></thead>
