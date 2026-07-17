@@ -15,17 +15,24 @@ async function generateOrderNumber() {
   return String(count + 1);
 }
 
-// Строит условие поиска. Если ввод — просто число (например "2"), номер
-// заказа ищется ТОЧНЫМ совпадением, а не "содержит подстроку" — иначе "2"
-// находил бы и старые номера вида "2026-00001", в которых просто есть
-// цифра 2 где-то внутри. Имя клиента и телефон по-прежнему ищутся частично.
+// Строит условие поиска.
+// Если ввод — просто число (например "2"), ищем ТОЛЬКО точное совпадение
+// номера заказа — и никакого совпадения по телефону клиента. Иначе почти
+// любая короткая цифра ложно "находила" бы заказы просто потому, что
+// телефоны (+998...) почти всегда содержат эту цифру где-то внутри номера.
+// Если ввод содержит буквы или знак "+" — это поиск по имени/телефону, там
+// уже используется частичное совпадение как раньше.
 function buildSearchWhere(search) {
   const trimmed = search.trim();
   const isPureNumber = /^\d+$/.test(trimmed);
 
+  if (isPureNumber) {
+    return { orderNumber: { equals: trimmed } };
+  }
+
   return {
     OR: [
-      isPureNumber ? { orderNumber: { equals: trimmed } } : { orderNumber: { contains: trimmed } },
+      { orderNumber: { contains: trimmed } },
       { client: { fullName: { contains: trimmed, mode: 'insensitive' } } },
       { client: { primaryPhone: { contains: trimmed } } },
     ],
