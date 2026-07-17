@@ -20,8 +20,6 @@ async function generateOrderNumber() {
 // номера заказа — и никакого совпадения по телефону клиента. Иначе почти
 // любая короткая цифра ложно "находила" бы заказы просто потому, что
 // телефоны (+998...) почти всегда содержат эту цифру где-то внутри номера.
-// Если ввод содержит буквы или знак "+" — это поиск по имени/телефону, там
-// уже используется частичное совпадение как раньше.
 function buildSearchWhere(search) {
   const trimmed = search.trim();
   const isPureNumber = /^\d+$/.test(trimmed);
@@ -38,6 +36,19 @@ function buildSearchWhere(search) {
     ],
   };
 }
+
+// Поля, которые реально нужны для списка заказов (реестра) — гораздо
+// меньше данных, чем полный include, поэтому запрос и передача по сети
+// быстрее. Полная информация подтягивается отдельно на странице заказа.
+const ORDER_LIST_SELECT = {
+  id: true,
+  orderNumber: true,
+  statusTech: true,
+  createdAt: true,
+  client: { select: { fullName: true, primaryPhone: true } },
+  address: { select: { city: true } },
+  _count: { select: { items: true } },
+};
 
 // GET /api/v1/orders  (реестр с фильтрами)
 router.get('/', async (req, res) => {
@@ -64,12 +75,25 @@ router.get('/', async (req, res) => {
 
   const orders = await prisma.order.findMany({
     where,
-    include: { client: true, address: true, items: true },
+    select: ORDER_LIST_SELECT,
     orderBy: { createdAt: 'desc' },
     take: 200,
   });
 
-  res.json(orders.map(serializeOrder));
+  // Приводим к тому же плоскому виду, что ждёт фронтенд (items как массив
+  // с длиной, а не отдельный счётчик _count)
+  const result = orders.map((o) => ({
+    id: o.id,
+    orderNumber: o.orderNumber,
+    statusTech: o.statusTech,
+    statusClient: clientStatusOf(o.statusTech),
+    createdAt: o.createdAt,
+    client: o.client,
+    address: o.address,
+    items: new Array(o._count.items),
+  }));
+
+  res.json(result);
 });
 
 function serializeOrder(o) {
