@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  login        String   @unique
+  passwordHash String
+  role         String
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  ordersCreated     Order[] @relation("CreatedBy")
+  ordersResponsible Order[] @relation("ResponsibleBy")
+  statusChanges     OrderStatusHistory[]
+  qrPrints          QrPrint[]
+}
+
+model Client {
+  id               Int      @id @default(autoincrement())
+  fullName         String
+  primaryPhone     String   @unique
+  comment          String?
+  firstContactDate DateTime @default(now())
+  lastContactDate  DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  phones       ClientPhone[]
+  addresses    ClientAddress[]
+  orders       Order[]
+  telegramLink TelegramLink?
+}
+
+model ClientPhone {
+  id        Int    @id @default(autoincrement())
+  clientId  Int
+  client    Client @relation(fields: [clientId], references: [id])
+  phone     String
+  isPrimary Boolean @default(false)
+}
+
+model ClientAddress {
+  id         Int     @id @default(autoincrement())
+  clientId   Int
+  client     Client  @relation(fields: [clientId], references: [id])
+  city       String?
+  district   String?
+  street     String?
+  house      String?
+  apartment  String?
+  landmark   String?
+  freeText   String?
+  isDefault  Boolean @default(false)
+
+  orders Order[]
+}
+
+model Order {
+  id                     Int       @id @default(autoincrement())
+  orderNumber            String    @unique
+  clientId               Int
+  client                 Client    @relation(fields: [clientId], references: [id])
+  addressId              Int?
+  address                ClientAddress? @relation(fields: [addressId], references: [id])
+  statusTech             String    @default("new")
+  responsibleEmployeeId  Int?
+  responsibleEmployee    Employee? @relation("ResponsibleBy", fields: [responsibleEmployeeId], references: [id])
+  creatorEmployeeId      Int
+  creatorEmployee        Employee  @relation("CreatedBy", fields: [creatorEmployeeId], references: [id])
+  qrToken                String    @unique
+  description            String?
+  employeeComment        String?
+  plannedDeliveryDate    DateTime?
+  readyAt                DateTime?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  cancelReason           String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  qrPrints      QrPrint[]
+  notifications NotificationLog[]
+}
+
+model OrderItem {
+  id             Int      @id @default(autoincrement())
+  orderId        Int
+  order          Order    @relation(fields: [orderId], references: [id])
+  positionNumber Int
+  productName    String
+  description    String?
+  comment        String?
+  size           String?
+  photoUrl       String?
+  damageNotes    String?
+  createdAt      DateTime @default(now())
+}
+
+model OrderStatusHistory {
+  id                  Int      @id @default(autoincrement())
+  orderId             Int
+  order               Order    @relation(fields: [orderId], references: [id])
+  previousStatus      String?
+  newStatus           String
+  changedByEmployeeId Int?
+  changedByEmployee   Employee? @relation(fields: [changedByEmployeeId], references: [id])
+  changeMethod        String
+  deviceInfo          String?
+  comment             String?
+  changedAt           DateTime @default(now())
+}
+
+model QrPrint {
+  id                  Int      @id @default(autoincrement())
+  orderId             Int
+  order               Order    @relation(fields: [orderId], references: [id])
+  printedByEmployeeId Int?
+  printedByEmployee   Employee? @relation(fields: [printedByEmployeeId], references: [id])
+  copiesCount         Int
+  printedAt           DateTime @default(now())
+}
+
+model TelegramLink {
+  id             Int      @id @default(autoincrement())
+  clientId       Int      @unique
+  client         Client   @relation(fields: [clientId], references: [id])
+  telegramChatId String   @unique
+  linkedPhone    String
+  linkedAt       DateTime @default(now())
+  isActive       Boolean  @default(true)
+}
+
+model NotificationLog {
+  id               Int      @id @default(autoincrement())
+  orderId          Int
+  order            Order    @relation(fields: [orderId], references: [id])
+  channel          String
+  recipientId      String?
+  messageText      String
+  status           String
+  errorInfo        String?
+  sentAt           DateTime @default(now())
+  sentByEmployeeId Int?
+}
