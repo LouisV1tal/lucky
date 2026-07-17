@@ -8,10 +8,11 @@ const { notifyIfReady } = require('../services/notifications');
 const router = express.Router();
 router.use(authRequired);
 
+// Простой сквозной номер заказа: 1, 2, 3... — легко вводить вручную,
+// в отличие от формата "2026-00001".
 async function generateOrderNumber() {
-  const year = new Date().getFullYear();
   const count = await prisma.order.count();
-  return `${year}-${String(count + 1).padStart(5, '0')}`;
+  return String(count + 1);
 }
 
 // GET /api/v1/orders  (реестр с фильтрами)
@@ -92,8 +93,6 @@ router.post('/', requireRole('admin', 'operator'), async (req, res) => {
 
   if (!clientId) return res.status(400).json({ error: 'Не указан клиент' });
   if (!items || !items.length) return res.status(400).json({ error: 'В заказе должен быть хотя бы один товар' });
-
-  // Контроль дублирующихся заказов: тот же клиент, активный заказ за последние 24ч (soft warning в отдельном GET, не блокируем тут)
 
   const orderNumber = await generateOrderNumber();
   const qrToken = uuidv4();
