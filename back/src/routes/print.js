@@ -14,8 +14,10 @@ router.use(authRequired);
 // (Helvetica и т.д.) не умеют русские буквы и печатают "иероглифы".
 const FONT_REGULAR = path.join(__dirname, '..', '..', 'assets', 'fonts', 'DejaVuSans.ttf');
 const FONT_BOLD = path.join(__dirname, '..', '..', 'assets', 'fonts', 'DejaVuSans-Bold.ttf');
-// Логотип лежит в той же папке, что и шрифты (assets/fonts/logo.png)
 const LOGO_PATH = path.join(__dirname, '..', '..', 'assets', 'fonts', 'logo.png');
+
+const TAG_WIDTH = 164.4;  // 58мм
+const TAG_HEIGHT = 113.4; // 40мм
 
 function registerFonts(doc) {
   doc.registerFont('main', FONT_REGULAR);
@@ -30,6 +32,47 @@ function hasLogo() {
 function qrUrlFor(order) {
   const base = process.env.PUBLIC_ORDER_URL || 'https://orders.example.com/o';
   return `${base}/${order.qrToken}`;
+}
+
+// Рисует содержимое одной бирки. Каждая следующая строка ставится строго под
+// предыдущей на основе её РЕАЛЬНОЙ высоты (doc.heightOfString) — поэтому
+// длинный номер заказа, длинное имя клиента или телефон никогда не наезжают
+// друг на друга, даже если какая-то строка переносится на две строки.
+function drawTag(doc, { order, qrPng, index, itemsCount, logoOnTag }) {
+  const leftX = 6;
+  const topY = 6;
+  const qrSize = 58;
+  doc.image(qrPng, leftX, topY, { width: qrSize, height: qrSize });
+
+  const textX = leftX + qrSize + 6; // = 70
+  const textWidth = TAG_WIDTH - textX - 6; // доступная ширина колонки текста
+
+  let cursorY = 4;
+
+  if (logoOnTag) {
+    doc.image(LOGO_PATH, textX, cursorY, { fit: [textWidth, 15] });
+    cursorY += 17;
+  }
+
+  doc.font('main-bold').fontSize(8);
+  const orderLabel = `Заказ №${order.orderNumber}`;
+  doc.text(orderLabel, textX, cursorY, { width: textWidth });
+  cursorY += doc.heightOfString(orderLabel, { width: textWidth }) + 2;
+
+  doc.font('main').fontSize(7.5);
+  doc.text(order.client.fullName, textX, cursorY, { width: textWidth });
+  cursorY += doc.heightOfString(order.client.fullName, { width: textWidth }) + 2;
+
+  doc.text(order.client.primaryPhone, textX, cursorY, { width: textWidth });
+  cursorY += doc.heightOfString(order.client.primaryPhone, { width: textWidth }) + 2;
+
+  doc.font('main-bold').fontSize(7.5);
+  const positionLabel = `Товар ${index + 1} из ${itemsCount}`;
+  doc.text(positionLabel, textX, cursorY, { width: textWidth });
+
+  // Дата приёма — отдельной строкой внизу бирки, на всю ширину
+  doc.font('main').fontSize(7);
+  doc.text(`Приём: ${order.createdAt.toLocaleDateString('ru-RU')}`, leftX, TAG_HEIGHT - 16, { width: TAG_WIDTH - leftX * 2 });
 }
 
 // GET /api/v1/orders/:id/qr/image  -- PNG-картинка QR-кода
@@ -55,7 +98,7 @@ router.post('/:id/print/tags', async (req, res) => {
   const qrPng = await QRCode.toBuffer(qrUrlFor(order), { type: 'png', width: 200, margin: 0 });
   const logoOnTag = hasLogo();
 
-  const doc = new PDFDocument({ size: [164.4, 113.4], margin: 6 }); // 58x40мм в points (1мм ≈ 2.834pt)
+  const doc = new PDFDocument({ size: [TAG_WIDTH, TAG_HEIGHT], margin: 0 });
   registerFonts(doc);
   res.set('Content-Type', 'application/pdf');
   res.set('Content-Disposition', `inline; filename="tags_${order.orderNumber}.pdf"`);
@@ -63,22 +106,10 @@ router.post('/:id/print/tags', async (req, res) => {
 
   for (let i = 0; i < copies; i++) {
     if (i > 0) {
-      doc.addPage({ size: [164.4, 113.4], margin: 6 });
+      doc.addPage({ size: [TAG_WIDTH, TAG_HEIGHT], margin: 0 });
       registerFonts(doc);
     }
-
-    // Логотип компании — маленький, в правом верхнем углу бирки
-    if (logoOnTag) {
-      doc.image(LOGO_PATH, 118, 4, { width: 40, height: 20, fit: [40, 20] });
-    }
-
-    doc.image(qrPng, 6, 6, { width: 58, height: 58 });
-
-    doc.font('main-bold').fontSize(9).text(`Заказ №${order.orderNumber}`, 68, 8, { width: 92 });
-    doc.font('main').fontSize(8).text(order.client.fullName, 68, 22, { width: 92 });
-    doc.font('main').fontSize(8).text(order.client.primaryPhone, 68, 36, { width: 92 });
-    doc.font('main-bold').fontSize(8).text(`Товар ${i + 1} из ${itemsCount}`, 68, 50, { width: 92 });
-    doc.font('main').fontSize(7).text(`Приём: ${order.createdAt.toLocaleDateString('ru-RU')}`, 6, 92, { width: 150 });
+    drawTag(doc, { order, qrPng, index: i, itemsCount, logoOnTag });
   }
 
   doc.end();
@@ -103,7 +134,7 @@ router.post('/:id/print/invoice', async (req, res) => {
   doc.pipe(res);
 
   if (hasLogo()) {
-    doc.image(LOGO_PATH, doc.page.width - 30 - 90, 30, { width: 90, fit: [90, 45] });
+    doc.image(LOGO_PATH, doc.page.width - 30 - 90, 30, { fit: [90, 45] });
   }
 
   doc.font('main-bold').fontSize(16).text(`Накладная — Заказ №${order.orderNumber}`, { underline: true });
