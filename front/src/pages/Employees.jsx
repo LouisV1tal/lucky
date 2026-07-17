@@ -31,6 +31,11 @@ export default function Employees() {
     load();
   }
 
+  async function activate(id) {
+    await api.patch(`/employees/${id}/activate`);
+    load();
+  }
+
   return (
     <div>
       <h1>Сотрудники</h1>
@@ -68,7 +73,13 @@ export default function Employees() {
                 <td>{e.login}</td>
                 <td>{ROLE_LABELS[e.role]}</td>
                 <td>{e.isActive ? 'Активен' : 'Деактивирован'}</td>
-                <td>{e.isActive && <button className="btn danger" style={{ minHeight: 36 }} onClick={() => deactivate(e.id)}>Деактивировать</button>}</td>
+                <td>
+                  {e.isActive ? (
+                    <button className="btn danger" style={{ minHeight: 36 }} onClick={() => deactivate(e.id)}>Деактивировать</button>
+                  ) : (
+                    <button className="btn secondary" style={{ minHeight: 36 }} onClick={() => activate(e.id)}>Активировать</button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
