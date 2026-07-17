@@ -15,6 +15,23 @@ async function generateOrderNumber() {
   return String(count + 1);
 }
 
+// Строит условие поиска. Если ввод — просто число (например "2"), номер
+// заказа ищется ТОЧНЫМ совпадением, а не "содержит подстроку" — иначе "2"
+// находил бы и старые номера вида "2026-00001", в которых просто есть
+// цифра 2 где-то внутри. Имя клиента и телефон по-прежнему ищутся частично.
+function buildSearchWhere(search) {
+  const trimmed = search.trim();
+  const isPureNumber = /^\d+$/.test(trimmed);
+
+  return {
+    OR: [
+      isPureNumber ? { orderNumber: { equals: trimmed } } : { orderNumber: { contains: trimmed } },
+      { client: { fullName: { contains: trimmed, mode: 'insensitive' } } },
+      { client: { primaryPhone: { contains: trimmed } } },
+    ],
+  };
+}
+
 // GET /api/v1/orders  (реестр с фильтрами)
 router.get('/', async (req, res) => {
   const { status, employee, city, phone, search, dateFrom, dateTo } = req.query;
@@ -29,13 +46,7 @@ router.get('/', async (req, res) => {
   }
   if (city) where.address = { city: { contains: city, mode: 'insensitive' } };
   if (phone) where.client = { primaryPhone: { contains: phone } };
-  if (search) {
-    where.OR = [
-      { orderNumber: { contains: search } },
-      { client: { fullName: { contains: search, mode: 'insensitive' } } },
-      { client: { primaryPhone: { contains: search } } },
-    ];
-  }
+  if (search) Object.assign(where, buildSearchWhere(search));
 
   // Оператор/курьер/производство видят по-разному согласно роли (см. раздел 2 ТЗ)
   if (req.user.role === 'operator') {
