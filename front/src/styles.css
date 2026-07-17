@@ -4,10 +4,10 @@
   --ink: #16273a;
   --ink-soft: #5c7185;
   --line: #dde6ef;
-  --primary: #1f5fa8;       /* глубокий синий из логотипа Lucky */
+  --primary: #1f5fa8;
   --primary-dark: #163f74;
   --primary-soft: #e5eef8;
-  --accent: #0ea5c4;        /* бирюзово-синий акцент — вторичный тон логотипа */
+  --accent: #0ea5c4;
   --accent-soft: #e0f4f8;
   --danger: #c0392b;
   --danger-soft: #f8e3e0;
@@ -15,6 +15,7 @@
   --ok-soft: #e2f3e8;
   --radius: 10px;
   --touch: 52px;
+  --sidebar-width: 220px;
 }
 
 * { box-sizing: border-box; }
@@ -29,17 +30,25 @@ body {
 
 #root { min-height: 100vh; display: flex; flex-direction: column; }
 
-.app-shell { display: flex; min-height: 100vh; width: 100%; }
+.app-shell { min-height: 100vh; width: 100%; }
 
+/* Боковая панель закреплена относительно окна браузера (position: fixed) —
+   не растягивается вместе со страницей и не двигается при прокрутке
+   основного контента. Кнопка "Выйти" всегда видна внизу панели. */
 .sidebar {
-  width: 220px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
   padding: 20px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  flex-shrink: 0;
+  overflow-y: auto;
+  z-index: 10;
 }
 
 .sidebar-brand {
@@ -80,10 +89,14 @@ body {
   color: rgba(255,255,255,0.65);
   border-top: 1px solid rgba(255,255,255,0.18);
   padding-top: 12px;
+  flex-shrink: 0;
 }
 
+/* Основной контент сдвинут вправо ровно на ширину панели и скроллится
+   независимо от неё */
 .main {
-  flex: 1;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
   padding: 28px 32px;
   overflow-x: auto;
 }
@@ -127,8 +140,6 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--ink); }
 .btn.danger:hover { background: #a33122; }
 .btn.big { min-height: 68px; font-size: 19px; width: 100%; }
 
-/* Кнопки действий в таблицах (Деактивировать / Активировать / Удалить / Изменить) —
-   одинаковая ширина и высота независимо от длины текста, не "прыгают" при смене подписи */
 .row-actions {
   display: flex;
   gap: 8px;
@@ -239,9 +250,32 @@ tr:hover td { background: var(--primary-soft); }
 
 .qr-scan-box {
   text-align: center;
-  padding: 40px 20px;
+  padding: 20px 20px 40px;
 }
 .qr-scan-box .input { text-align: center; font-size: 20px; letter-spacing: 1px; }
+
+.scanner-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 20px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #0d1b2a;
+  aspect-ratio: 1 / 1;
+}
+.scanner-viewport video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scanner-frame {
+  position: absolute;
+  inset: 12%;
+  border: 3px solid var(--accent);
+  border-radius: 16px;
+  pointer-events: none;
+}
 
 .status-flow {
   display: flex;
