@@ -7,16 +7,19 @@ const { TECH_STATUS_LABELS } = require('../utils/statusChain');
 const router = express.Router();
 router.use(authRequired, requireRole('admin'));
 
-// Тот же принцип, что и в реестре заказов: числовой ввод ищет номер заказа
-// точным совпадением, а не подстрокой (иначе "2" находил бы старые номера
-// вида "2026-00001").
+// Тот же принцип, что и в реестре заказов: числовой ввод ищет ТОЛЬКО номер
+// заказа точным совпадением, без ложных совпадений по телефону клиента.
 function buildSearchWhere(search) {
   const trimmed = search.trim();
   const isPureNumber = /^\d+$/.test(trimmed);
 
+  if (isPureNumber) {
+    return { orderNumber: { equals: trimmed } };
+  }
+
   return {
     OR: [
-      isPureNumber ? { orderNumber: { equals: trimmed } } : { orderNumber: { contains: trimmed } },
+      { orderNumber: { contains: trimmed } },
       { client: { fullName: { contains: trimmed, mode: 'insensitive' } } },
       { client: { primaryPhone: { contains: trimmed } } },
     ],
