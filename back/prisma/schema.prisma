@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -39,6 +38,8 @@ model Client {
   addresses    ClientAddress[]
   orders       Order[]
   telegramLink TelegramLink?
+
+  @@index([fullName])
 }
 
 model ClientPhone {
@@ -47,6 +48,9 @@ model ClientPhone {
   client    Client @relation(fields: [clientId], references: [id])
   phone     String
   isPrimary Boolean @default(false)
+
+  @@index([clientId])
+  @@index([phone])
 }
 
 model ClientAddress {
@@ -63,6 +67,8 @@ model ClientAddress {
   isDefault  Boolean @default(false)
 
   orders Order[]
+
+  @@index([clientId])
 }
 
 model Order {
@@ -92,6 +98,13 @@ model Order {
   statusHistory OrderStatusHistory[]
   qrPrints      QrPrint[]
   notifications NotificationLog[]
+
+  @@index([clientId])
+  @@index([addressId])
+  @@index([statusTech])
+  @@index([creatorEmployeeId])
+  @@index([responsibleEmployeeId])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -106,6 +119,8 @@ model OrderItem {
   photoUrl       String?
   damageNotes    String?
   createdAt      DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model OrderStatusHistory {
@@ -120,6 +135,9 @@ model OrderStatusHistory {
   deviceInfo          String?
   comment             String?
   changedAt           DateTime @default(now())
+
+  @@index([orderId])
+  @@index([changedByEmployeeId])
 }
 
 model QrPrint {
@@ -130,6 +148,8 @@ model QrPrint {
   printedByEmployee   Employee? @relation(fields: [printedByEmployeeId], references: [id])
   copiesCount         Int
   printedAt           DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model TelegramLink {
@@ -153,4 +173,6 @@ model NotificationLog {
   errorInfo        String?
   sentAt           DateTime @default(now())
   sentByEmployeeId Int?
+
+  @@index([orderId])
 }
