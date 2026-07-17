@@ -114,7 +114,7 @@ export default function Employees() {
 
       <div className="card">
         <table>
-          <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th>Статус</th><th style={{ minWidth: 260 }}></th></tr></thead>
+          <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th>Статус</th><th style={{ minWidth: 320 }}></th></tr></thead>
           <tbody>
             {employees.map((e) => (
               editingId === e.id ? (
@@ -142,9 +142,9 @@ export default function Employees() {
                         <input className="input" type="password" value={editForm.password} onChange={(ev) => setEditForm({ ...editForm, password: ev.target.value })} />
                       </div>
                       {editError && <div className="error-text">{editError}</div>}
-                      <div className="row">
-                        <button className="btn" onClick={() => saveEdit(e.id)}>Сохранить</button>
-                        <button className="btn secondary" onClick={cancelEdit}>Отмена</button>
+                      <div className="row-actions">
+                        <button className="btn row-action" style={{ width: 'auto', padding: '0 20px' }} onClick={() => saveEdit(e.id)}>Сохранить</button>
+                        <button className="btn row-action outline" style={{ width: 'auto', padding: '0 20px' }} onClick={cancelEdit}>Отмена</button>
                       </div>
                     </div>
                   </td>
@@ -156,14 +156,14 @@ export default function Employees() {
                   <td>{ROLE_LABELS[e.role]}</td>
                   <td>{e.isActive ? 'Активен' : 'Деактивирован'}</td>
                   <td>
-                    <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                      <button className="btn secondary" style={{ minHeight: 36 }} onClick={() => startEdit(e)}>Изменить</button>
+                    <div className="row-actions">
+                      <button className="btn row-action outline" onClick={() => startEdit(e)}>Изменить</button>
                       {e.isActive ? (
-                        <button className="btn danger" style={{ minHeight: 36 }} onClick={() => deactivate(e.id)}>Деактивировать</button>
+                        <button className="btn row-action warn" onClick={() => deactivate(e.id)}>Деактивировать</button>
                       ) : (
-                        <button className="btn secondary" style={{ minHeight: 36 }} onClick={() => activate(e.id)}>Активировать</button>
+                        <button className="btn row-action positive" onClick={() => activate(e.id)}>Активировать</button>
                       )}
-                      <button className="btn danger" style={{ minHeight: 36 }} onClick={() => remove(e)}>Удалить</button>
+                      <button className="btn row-action solid-danger" onClick={() => remove(e)}>Удалить</button>
                     </div>
                   </td>
                 </tr>
