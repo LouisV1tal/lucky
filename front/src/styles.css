@@ -1,16 +1,18 @@
 :root {
-  --bg: #f6f4f0;
+  --bg: #f3f7fb;
   --surface: #ffffff;
-  --ink: #22261f;
-  --ink-soft: #5c6156;
-  --line: #e2ded4;
-  --primary: #2e4034;      /* глубокий тёмно-зелёный — цвет ковровой шерсти/мастерской */
-  --primary-soft: #e7ede9;
-  --accent: #b5652d;       /* терракота-медь — акцент для важных действий/QR */
-  --accent-soft: #f5e6d8;
-  --danger: #a3372f;
-  --danger-soft: #f6e3e1;
-  --ok: #3c6e47;
+  --ink: #16273a;
+  --ink-soft: #5c7185;
+  --line: #dde6ef;
+  --primary: #1f5fa8;       /* глубокий синий из логотипа Lucky */
+  --primary-dark: #163f74;
+  --primary-soft: #e5eef8;
+  --accent: #0ea5c4;        /* бирюзово-синий акцент — вторичный тон логотипа */
+  --accent-soft: #e0f4f8;
+  --danger: #c0392b;
+  --danger-soft: #f8e3e0;
+  --ok: #1f8a53;
+  --ok-soft: #e2f3e8;
   --radius: 10px;
   --touch: 52px;
 }
@@ -31,7 +33,7 @@ body {
 
 .sidebar {
   width: 220px;
-  background: var(--primary);
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
   padding: 20px 14px;
   display: flex;
@@ -41,10 +43,23 @@ body {
 }
 
 .sidebar-brand {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
   font-weight: 700;
   margin-bottom: 18px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #fff;
+  padding: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .sidebar a {
@@ -57,13 +72,13 @@ body {
   display: flex;
   align-items: center;
 }
-.sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.12); color: #fff; }
+.sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.14); color: #fff; }
 
 .sidebar-user {
   margin-top: auto;
   font-size: 13px;
   color: rgba(255,255,255,0.65);
-  border-top: 1px solid rgba(255,255,255,0.15);
+  border-top: 1px solid rgba(255,255,255,0.18);
   padding-top: 12px;
 }
 
@@ -73,8 +88,8 @@ body {
   overflow-x: auto;
 }
 
-h1 { font-size: 24px; margin: 0 0 18px; }
-h2 { font-size: 18px; margin: 0 0 12px; }
+h1 { font-size: 24px; margin: 0 0 18px; color: var(--primary-dark); }
+h2 { font-size: 18px; margin: 0 0 12px; color: var(--ink); }
 
 .card {
   background: var(--surface);
@@ -82,6 +97,7 @@ h2 { font-size: 18px; margin: 0 0 12px; }
   border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(22, 39, 58, 0.04);
 }
 
 .btn {
@@ -98,12 +114,56 @@ h2 { font-size: 18px; margin: 0 0 12px; }
   cursor: pointer;
   background: var(--primary);
   color: #fff;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
+.btn:hover { background: var(--primary-dark); }
+.btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn.secondary { background: var(--primary-soft); color: var(--primary); }
+.btn.secondary:hover { background: #d6e5f4; }
 .btn.accent { background: var(--accent); }
+.btn.accent:hover { background: #0b8ba6; }
 .btn.danger { background: var(--danger); }
+.btn.danger:hover { background: #a33122; }
 .btn.big { min-height: 68px; font-size: 19px; width: 100%; }
+
+/* Кнопки действий в таблицах (Деактивировать / Активировать / Удалить / Изменить) —
+   одинаковая ширина и высота независимо от длины текста, не "прыгают" при смене подписи */
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn.row-action {
+  min-height: 40px;
+  width: 148px;
+  padding: 0 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.btn.row-action.outline {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  color: var(--ink-soft);
+}
+.btn.row-action.outline:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.btn.row-action.warn {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.btn.row-action.warn:hover { background: #f3d2cd; }
+.btn.row-action.positive {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.btn.row-action.positive:hover { background: #d3ecdd; }
+.btn.row-action.solid-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn.row-action.solid-danger:hover { background: #a33122; }
 
 .input, select, textarea {
   width: 100%;
@@ -115,6 +175,7 @@ h2 { font-size: 18px; margin: 0 0 12px; }
   background: #fff;
   color: var(--ink);
 }
+.input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
 textarea { min-height: 80px; }
 
 label { font-size: 13px; color: var(--ink-soft); display: block; margin-bottom: 6px; }
@@ -135,7 +196,7 @@ tr:hover td { background: var(--primary-soft); }
   color: var(--primary);
 }
 .badge.ready { background: var(--accent-soft); color: var(--accent); }
-.badge.done { background: #e3ede4; color: var(--ok); }
+.badge.done { background: var(--ok-soft); color: var(--ok); }
 .badge.cancelled { background: var(--danger-soft); color: var(--danger); }
 
 .row { display: flex; gap: 14px; flex-wrap: wrap; }
@@ -146,7 +207,7 @@ tr:hover td { background: var(--primary-soft); }
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 10px;
-  background: #fbfaf7;
+  background: #fbfcfe;
 }
 
 .login-screen {
@@ -154,16 +215,24 @@ tr:hover td { background: var(--primary-soft); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary);
+  background: linear-gradient(160deg, var(--primary) 0%, var(--primary-dark) 100%);
 }
 .login-box {
   background: #fff;
   border-radius: 14px;
   padding: 36px 32px;
   width: 340px;
+  text-align: center;
 }
-.login-box h1 { font-size: 20px; margin-bottom: 4px; }
+.login-logo {
+  width: 84px;
+  height: auto;
+  margin: 0 auto 14px;
+  display: block;
+}
+.login-box h1 { font-size: 20px; margin-bottom: 4px; color: var(--primary-dark); }
 .login-box p { color: var(--ink-soft); font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+.login-box .field { text-align: left; }
 
 .error-text { color: var(--danger); font-size: 14px; margin: 8px 0; }
 .hint-text { color: var(--ink-soft); font-size: 13px; }
@@ -185,8 +254,7 @@ tr:hover td { background: var(--primary-soft); }
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--primary-soft);
-  color: var(--primary-soft);
   color: var(--ink-soft);
 }
 .status-step.active { background: var(--primary); color: #fff; }
-.status-step.done { background: #dfe9e1; color: var(--ok); }
+.status-step.done { background: var(--ok-soft); color: var(--ok); }
