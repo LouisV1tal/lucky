@@ -31,17 +31,29 @@ export default function Orders() {
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  async function load() {
+  // Принимает необязательный набор фильтров, чтобы можно было применить их
+  // сразу же (например, сразу после выбора статуса), не дожидаясь, пока
+  // React обновит состояние filters — иначе в момент вызова load() могло
+  // использоваться ещё старое значение статуса.
+  async function load(overrideFilters) {
+    const f = overrideFilters || filters;
     setLoading(true);
     const params = {};
-    if (filters.search) params.search = filters.search;
-    if (filters.status) params.status = filters.status;
+    if (f.search) params.search = f.search;
+    if (f.status) params.status = f.status;
     const { data } = await api.get('/orders', { params });
     setOrders(data);
     setLoading(false);
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  // Статус применяется сразу при выборе из списка, без отдельного нажатия "Найти"
+  function handleStatusChange(e) {
+    const next = { ...filters, status: e.target.value };
+    setFilters(next);
+    load(next);
+  }
 
   // Скачивание реестра в Excel — учитывает те же фильтры (поиск, статус),
   // что сейчас применены в списке на экране. Файл требует авторизации,
@@ -85,13 +97,13 @@ export default function Orders() {
           </div>
           <div>
             <label>Статус</label>
-            <select className="input" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+            <select className="input" value={filters.status} onChange={handleStatusChange}>
               <option value="">Все</option>
               {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-            <button className="btn" onClick={load}>Найти</button>
+            <button className="btn" onClick={() => load()}>Найти</button>
             {user.role === 'admin' && (
               <button className="btn secondary" onClick={downloadExcel} disabled={exporting}>
                 {exporting ? 'Готовим файл…' : 'Скачать в Excel'}
