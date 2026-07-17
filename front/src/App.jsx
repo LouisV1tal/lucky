@@ -21,7 +21,10 @@ function Shell({ children }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">🧵 Учёт заказов</div>
+        <div className="sidebar-brand">
+          <img src="/logo.png" alt="Lucky" className="brand-logo" />
+          <span>Учёт заказов</span>
+        </div>
         <NavLink to="/orders" className={({ isActive }) => (isActive ? 'active' : '')}>Заказы</NavLink>
         {(user.role === 'admin' || user.role === 'operator') && (
           <NavLink to="/orders/new" className={({ isActive }) => (isActive ? 'active' : '')}>Новый заказ</NavLink>
