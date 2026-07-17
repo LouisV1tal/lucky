@@ -9,13 +9,22 @@ router.use(authRequired, requireRole('admin'));
 
 // GET /api/v1/export/orders.xlsx
 router.get('/orders.xlsx', async (req, res) => {
-  const { status, dateFrom, dateTo } = req.query;
+  const { status, dateFrom, dateTo, search, phone, city } = req.query;
   const where = {};
   if (status) where.statusTech = status;
   if (dateFrom || dateTo) {
     where.createdAt = {};
     if (dateFrom) where.createdAt.gte = new Date(dateFrom);
     if (dateTo) where.createdAt.lte = new Date(dateTo);
+  }
+  if (city) where.address = { city: { contains: city, mode: 'insensitive' } };
+  if (phone) where.client = { primaryPhone: { contains: phone } };
+  if (search) {
+    where.OR = [
+      { orderNumber: { contains: search } },
+      { client: { fullName: { contains: search, mode: 'insensitive' } } },
+      { client: { primaryPhone: { contains: search } } },
+    ];
   }
 
   const orders = await prisma.order.findMany({
