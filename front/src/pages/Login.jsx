@@ -26,6 +26,7 @@ export default function Login() {
   return (
     <div className="login-screen">
       <form className="login-box" onSubmit={submit}>
+        <img src="/logo.png" alt="Lucky" className="login-logo" />
         <h1>Учёт заказов</h1>
         <p>Приём, обработка и доставка ковров</p>
         <div className="field">
