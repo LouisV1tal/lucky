@@ -38,9 +38,6 @@ export default function Login() {
         </div>
         {error && <div className="error-text">{error}</div>}
         <button className="btn big" disabled={loading}>{loading ? 'Входим…' : 'Войти'}</button>
-        <p className="hint-text" style={{ marginTop: 16 }}>
-          Демо: admin/admin123, operator1/operator123, production1/production123, courier1/courier123
-        </p>
       </form>
     </div>
   );
