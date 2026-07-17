@@ -9,6 +9,7 @@ export default function Scan() {
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(document.createElement('canvas'));
@@ -32,21 +33,46 @@ export default function Scan() {
     }
   }
 
+  // Ввод похож на ссылку/токен QR (содержит "/" или выглядит как длинный UUID)
+  function looksLikeQrToken(raw) {
+    if (raw.includes('/')) return true;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+  }
+
   async function submitManual(e) {
     e.preventDefault();
     setError('');
-    await openOrderByToken(extractToken(value));
+    setSearchResults([]);
+    const raw = value.trim();
+    if (!raw) return;
+
+    if (looksLikeQrToken(raw)) {
+      await openOrderByToken(extractToken(raw));
+      return;
+    }
+
+    // Иначе ищем как номер заказа или номер телефона клиента —
+    // используем тот же реестр заказов с фильтром поиска
+    try {
+      const { data } = await api.get('/orders', { params: { search: raw } });
+      if (data.length === 0) {
+        setError('Заказ не найден. Проверьте номер заказа или номер телефона клиента.');
+      } else if (data.length === 1) {
+        navigate(`/orders/${data[0].id}`);
+      } else {
+        setSearchResults(data);
+      }
+    } catch (err) {
+      setError('Не удалось выполнить поиск. Попробуйте ещё раз.');
+    }
   }
 
   async function startScanning() {
     setError('');
     setCameraError('');
+    setSearchResults([]);
     foundRef.current = false;
 
-    // Видео-элемент теперь всегда присутствует в разметке (просто скрыт
-    // стилями), поэтому videoRef.current уже существует к этому моменту —
-    // раньше камера включалась раньше, чем React успевал отрисовать <video>,
-    // из-за чего поток было некуда подключить.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -66,7 +92,7 @@ export default function Scan() {
     } catch (err) {
       setCameraError(
         'Не удалось получить доступ к камере. Проверьте, что браузер имеет разрешение на использование камеры, ' +
-        'и что сайт открыт по HTTPS. Можно ввести код вручную ниже.'
+        'и что сайт открыт по HTTPS. Можно ввести номер заказа, телефон клиента или код вручную ниже.'
       );
     }
   }
@@ -119,8 +145,6 @@ export default function Scan() {
         Наведите камеру на бирку заказа — заказ откроется автоматически, как только код будет распознан.
       </p>
 
-      {/* Видео всегда в разметке (нужно, чтобы ref был готов до включения камеры),
-          просто показываем/скрываем контейнер стилями */}
       <div className="scanner-viewport" style={{ display: scanning ? 'block' : 'none' }}>
         <video ref={videoRef} playsInline muted />
         <div className="scanner-frame" />
@@ -137,19 +161,36 @@ export default function Scan() {
       {cameraError && <div className="error-text" style={{ maxWidth: 420, margin: '0 auto 20px' }}>{cameraError}</div>}
 
       <p className="hint-text" style={{ marginTop: 24 }}>
-        Также можно ввести код вручную — если есть USB/Bluetooth-сканер штрихкодов (он печатает код прямо в поле ниже),
-        или если нужно найти заказ по ссылке/токену без камеры.
+        Также можно найти заказ вручную — по номеру заказа, номеру телефона клиента, или вставив ссылку/токен QR
+        (например, при использовании USB/Bluetooth-сканера штрихкодов).
       </p>
       <form onSubmit={submitManual} style={{ maxWidth: 420, margin: '0 auto' }}>
         <input
           className="input"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Токен заказа или ссылка"
+          placeholder="Номер заказа, телефон или токен QR"
         />
-        <button className="btn big" style={{ marginTop: 14 }}>Открыть заказ</button>
+        <button className="btn big" style={{ marginTop: 14 }}>Найти заказ</button>
       </form>
       {error && <div className="error-text">{error}</div>}
+
+      {searchResults.length > 0 && (
+        <div className="card" style={{ maxWidth: 420, margin: '20px auto 0', textAlign: 'left' }}>
+          <h2>Найдено несколько заказов — выберите нужный</h2>
+          {searchResults.map((o) => (
+            <div
+              key={o.id}
+              className="item-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => navigate(`/orders/${o.id}`)}
+            >
+              <strong>Заказ №{o.orderNumber}</strong>
+              <div className="hint-text">{o.client?.fullName} · {o.client?.primaryPhone}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
