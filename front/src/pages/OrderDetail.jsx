@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import api, { API_URL } from '../api.js';
+import api from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
 
 const CHAIN = ['new','accepted','delivered_to_production','washing','drying','packing','ready_for_delivery','in_transit','completed'];
@@ -17,12 +17,32 @@ export default function OrderDetail() {
   const [error, setError] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [showCancel, setShowCancel] = useState(false);
+  const [qrImageUrl, setQrImageUrl] = useState(null);
+  const [printError, setPrintError] = useState('');
 
   async function load() {
     const { data } = await api.get(`/orders/${id}`);
     setOrder(data);
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+
+  // QR-картинка тоже требует авторизации на backend, поэтому её нельзя
+  // просто подставить в <img src="..."> напрямую — грузим её через
+  // авторизованный api-клиент и превращаем в локальную blob-ссылку.
+  useEffect(() => {
+    let objectUrl;
+    async function loadQr() {
+      try {
+        const res = await api.get(`/orders/${id}/qr/image`, { responseType: 'blob' });
+        objectUrl = URL.createObjectURL(res.data);
+        setQrImageUrl(objectUrl);
+      } catch {
+        setQrImageUrl(null);
+      }
+    }
+    loadQr();
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [id]);
 
   async function nextStatus() {
     setError('');
@@ -55,11 +75,34 @@ export default function OrderDetail() {
     }
   }
 
-  function printTags() {
-    window.open(`${API_URL}/api/v1/orders/${id}/print/tags`, '_blank');
+  // Печать тоже требует авторизации — скачиваем PDF через api-клиент
+  // (с токеном), превращаем в blob-ссылку и открываем её в новой вкладке.
+  async function printTags() {
+    setPrintError('');
+    // Открываем окно СРАЗУ (синхронно, в момент клика), иначе блокировщик
+    // всплывающих окон браузера заблокирует window.open после await.
+    const win = window.open('', '_blank');
+    try {
+      const res = await api.post(`/orders/${id}/print/tags`, null, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      if (win) win.location.href = url;
+    } catch (e) {
+      if (win) win.close();
+      setPrintError('Не удалось открыть бирки для печати. Попробуйте ещё раз.');
+    }
   }
-  function printInvoice() {
-    window.open(`${API_URL}/api/v1/orders/${id}/print/invoice`, '_blank');
+
+  async function printInvoice() {
+    setPrintError('');
+    const win = window.open('', '_blank');
+    try {
+      const res = await api.post(`/orders/${id}/print/invoice`, null, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      if (win) win.location.href = url;
+    } catch (e) {
+      if (win) win.close();
+      setPrintError('Не удалось открыть накладную для печати. Попробуйте ещё раз.');
+    }
   }
 
   if (!order) return <p>Загрузка…</p>;
@@ -81,7 +124,11 @@ export default function OrderDetail() {
             <p>{order.address ? `${order.address.city || ''}, ${order.address.street || ''} ${order.address.house || ''}, кв. ${order.address.apartment || ''}` : '—'}</p>
           </div>
           <div>
-            <img src={`${API_URL}/api/v1/orders/${order.id}/qr/image`} alt="QR" width={120} height={120} />
+            {qrImageUrl ? (
+              <img src={qrImageUrl} alt="QR" width={120} height={120} />
+            ) : (
+              <p className="hint-text">QR-код загружается…</p>
+            )}
           </div>
         </div>
       </div>
@@ -148,6 +195,7 @@ export default function OrderDetail() {
           <button className="btn secondary" onClick={printTags}>Печать бирок ({order.items.length} шт.)</button>
           <button className="btn secondary" onClick={printInvoice}>Печать накладной</button>
         </div>
+        {printError && <div className="error-text">{printError}</div>}
       </div>
 
       <div className="card">
